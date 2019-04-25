@@ -5,7 +5,6 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-
 //! The `pdb` create parses Microsoft PDB (Program Database) files. PDB files contain debugging
 //! information produced by most compilers that target Windows, including information about symbols,
 //! types, modules, and so on.
@@ -24,22 +23,19 @@
 //! let mut pdb = pdb::PDB::open(file)?;
 //!
 //! let symbol_table = pdb.global_symbols()?;
+//! let address_map = pdb.address_map()?;
 //!
 //! # let mut count: usize = 0;
 //! let mut symbols = symbol_table.iter();
 //! while let Some(symbol) = symbols.next()? {
 //!     match symbol.parse() {
-//!     	Ok(pdb::SymbolData::PublicSymbol{
-//!     		function: true,
-//!     		segment,
-//!     		offset,
-//!     		..
-//!     	}) => {
-//!     		// we found the location of a function!
-//!     		println!("{:x}:{:08x} is {}", segment, offset, symbol.name()?);
+//!         Ok(pdb::SymbolData::PublicSymbol(data)) if data.function => {
+//!             // we found the location of a function!
+//!             let rva = data.offset.to_rva(&address_map).unwrap_or_default();
+//!             println!("{} is {}", rva, symbol.name()?);
 //!             # count += 1;
-//!     	}
-//!     	_ => {}
+//!         }
+//!         _ => {}
 //!     }
 //! }
 //!
@@ -48,27 +44,34 @@
 //! # assert!(test().expect("test") > 2000);
 //! ```
 
-extern crate byteorder;
-extern crate fallible_iterator;
-
 // modules
 mod common;
 mod dbi;
+mod framedata;
+mod modi;
 mod msf;
+mod omap;
 mod pdb;
+mod pdbi;
+mod pe;
 mod source;
+mod strings;
 mod symbol;
 mod tpi;
 
 // exports
-pub use common::{Error,Result,TypeIndex,RawString};
-pub use dbi::{DebugInformation};
-pub use pdb::PDB;
-pub use source::*;
-pub use symbol::{SymbolTable,Symbol,SymbolData,SymbolIter};
-pub use tpi::{Type,TypeFinder,TypeInformation,TypeIter,TypeData};
-pub use tpi::{ClassKind,EnumValue,FieldAttributes,FunctionAttributes,MethodListEntry,TypeProperties};
-pub use tpi::{Indirection,PrimitiveType};
+pub use crate::common::*;
+pub use crate::dbi::*;
+pub use crate::framedata::*;
+pub use crate::modi::*;
+pub use crate::omap::*;
+pub use crate::pdb::*;
+pub use crate::pdbi::*;
+pub use crate::pe::*;
+pub use crate::source::*;
+pub use crate::strings::*;
+pub use crate::symbol::*;
+pub use crate::tpi::*;
 
 // re-export FallibleIterator for convenience
 #[doc(no_inline)]
